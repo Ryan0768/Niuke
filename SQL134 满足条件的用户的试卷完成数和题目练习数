@@ -1,0 +1,113 @@
+drop table if exists examination_info;
+CREATE TABLE examination_info (
+id int PRIMARY KEY AUTO_INCREMENT COMMENT '自增ID',
+exam_id int UNIQUE NOT NULL COMMENT '试卷ID',
+tag varchar(32) COMMENT '类别标签',
+difficulty varchar(8) COMMENT '难度',
+duration int NOT NULL COMMENT '时长',
+release_time datetime COMMENT '发布时间'
+)CHARACTER SET utf8 COLLATE utf8_general_ci;
+
+drop table if exists user_info;
+CREATE TABLE  user_info (
+id int PRIMARY KEY AUTO_INCREMENT COMMENT '自增ID',
+uid int UNIQUE NOT NULL COMMENT '用户ID',
+`nick_name` varchar(64) COMMENT '昵称',
+achievement int COMMENT '成就值',
+level int COMMENT '用户等级',
+job varchar(32) COMMENT '职业方向',
+register_time datetime COMMENT '注册时间'
+)CHARACTER SET utf8 COLLATE utf8_general_ci;
+
+drop table if exists practice_record;
+CREATE TABLE practice_record (
+id int PRIMARY KEY AUTO_INCREMENT COMMENT '自增ID',
+uid int NOT NULL COMMENT '用户ID',
+question_id int NOT NULL COMMENT '题目ID',
+submit_time datetime COMMENT '提交时间',
+score tinyint COMMENT '得分'
+)CHARACTER SET utf8 COLLATE utf8_general_ci;
+
+drop table if exists exam_record;
+CREATE TABLE  exam_record (
+id int PRIMARY KEY AUTO_INCREMENT COMMENT '自增ID',
+uid int NOT NULL COMMENT '用户ID',
+exam_id int NOT NULL COMMENT '试卷ID',
+start_time datetime NOT NULL COMMENT '开始时间',
+submit_time datetime COMMENT '提交时间',
+score tinyint COMMENT '得分'
+)CHARACTER SET utf8 COLLATE utf8_general_ci;
+
+INSERT INTO user_info(uid,`nick_name`,achievement,level,job,register_time) VALUES
+(1001, '牛客1号', 3100, 7, '算法', '2020-01-01 10:00:00'),
+(1002, '牛客2号', 2300, 7, '算法', '2020-01-01 10:00:00'),
+(1003, '牛客3号', 2500, 7, '算法', '2020-01-01 10:00:00'),
+(1004, '牛客4号', 1200, 5, '算法', '2020-01-01 10:00:00'),
+(1005, '牛客5号', 1600, 6, 'C++', '2020-01-01 10:00:00'),
+(1006, '牛客6号', 2600, 7, 'C++', '2020-01-01 10:00:00');
+
+INSERT INTO examination_info(exam_id,tag,difficulty,duration,release_time) VALUES
+(9001, 'SQL', 'hard', 60, '2021-09-01 06:00:00'),
+(9002, 'C++', 'hard', 60, '2021-09-01 06:00:00'),
+(9003, '算法', 'medium', 80, '2021-09-01 10:00:00');
+
+INSERT INTO practice_record(uid,question_id,submit_time,score) VALUES
+(1001, 8001, '2021-08-02 11:41:01', 60),
+(1002, 8001, '2021-09-02 19:30:01', 50),
+(1002, 8001, '2021-09-02 19:20:01', 70),
+(1002, 8002, '2021-09-02 19:38:01', 70),
+(1004, 8001, '2021-08-02 19:38:01', 70),
+(1004, 8002, '2021-08-02 19:48:01', 90),
+(1001, 8002, '2021-08-02 19:38:01', 70),
+(1004, 8002, '2021-08-02 19:48:01', 90),
+(1006, 8002, '2021-08-02 19:58:01', 94),
+(1006, 8003, '2021-08-02 19:38:01', 70),
+(1006, 8003, '2021-08-02 19:48:01', 90),
+(1006, 8003, '2020-08-01 19:38:01', 80);
+
+INSERT INTO exam_record(uid,exam_id,start_time,submit_time,score) VALUES
+(1001, 9001, '2021-09-01 09:01:01', '2021-09-01 09:31:00', 81),
+(1002, 9002, '2021-09-01 12:01:01', '2021-09-01 12:31:01', 81),
+(1003, 9001, '2021-09-01 19:01:01', '2021-09-01 19:40:01', 86),
+(1003, 9002, '2021-09-01 12:01:01', '2021-09-01 12:31:51', 89),
+(1004, 9001, '2021-09-01 19:01:01', '2021-09-01 19:30:01', 85),
+(1005, 9002, '2021-09-01 12:01:01', '2021-09-01 12:31:02', 85),
+(1006, 9003, '2021-09-07 10:01:01', '2021-09-07 10:21:01', 84),
+(1006, 9001, '2021-09-07 10:01:01', '2021-09-07 10:21:01', 81),
+(1003, 9003, '2021-09-08 12:01:01', '2021-09-08 12:11:01', 40),
+(1003, 9001, '2020-09-01 13:01:01', '2020-09-01 13:41:01', 81),
+(1003, 9002, '2021-09-01 14:01:01', null, null);
+
+select 
+    uid,
+    exam_cnt,
+    if(question_cnt is null, 0, question_cnt)
+from
+(select 
+    uid,
+    count(submit_time) as exam_cnt
+from exam_record
+where YEAR(submit_time) = 2021
+group by uid) t
+
+left join
+
+(select
+    uid,
+    count(submit_time) as question_cnt
+from practice_record
+where YEAR(submit_time) = 2021
+group by uid) t2 using(uid)
+
+where uid in
+(
+select
+    uid
+from exam_record
+join examination_info using(exam_id)
+join user_info using(uid)
+where tag = 'SQL' and difficulty = 'hard' and `level` = 7
+group by uid
+having avg(score) >= 80
+)
+order by exam_cnt asc, question_cnt desc
